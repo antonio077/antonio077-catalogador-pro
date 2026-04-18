@@ -18,22 +18,23 @@
         label { font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 5px; font-weight: 600; }
         select, input { background: #0b0b1a; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 6px; width: 100%; font-size: 13px; outline: none; }
         .main { flex: 1; margin-left: 30px; }
-        .card { background-color: var(--card-bg); border-radius: 16px; padding: 25px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .efficiency-val { font-size: 60px; font-weight: 700; color: var(--accent); margin: 10px 0; }
+        .card { background-color: var(--card-bg); border-radius: 16px; padding: 25px; border: 1px solid var(--border); text-align: center; }
+        .efficiency-val { font-size: 60px; font-weight: 700; color: var(--accent); text-shadow: 0 0 20px rgba(0,255,204,0.3); }
         .history-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 20px; }
-        .box { height: 45px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); }
-        .box.win { background: var(--green-win); box-shadow: 0 0 15px var(--green-win); border: none; }
-        .box.loss { background: var(--red-loss); box-shadow: 0 0 15px var(--red-loss); border: none; }
-        .log-terminal { margin-top: 20px; background: #000; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #00ff00; height: 100px; overflow-y: auto; border: 1px solid var(--border); }
+        .box { height: 45px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); transition: 0.4s; }
+        .box.win { background: var(--green-win); border: none; box-shadow: 0 0 15px var(--green-win); }
+        .box.loss { background: var(--red-loss); border: none; box-shadow: 0 0 15px var(--red-loss); }
+        .log-terminal { margin-top: 20px; background: #000; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #00ff00; height: 120px; overflow-y: auto; border: 1px solid var(--border); }
         button { width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 8px; cursor: pointer; font-weight: 800; color: #0b0b1a; margin-top: 10px; text-transform: uppercase; }
+        button:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <h4>Configuración</h4>
+        <h4>Panel de Análisis</h4>
         <div class="group">
-            <label>Activo</label>
+            <label>Par (Binance)</label>
             <select id="pair">
                 <option value="BTCUSDT">BTC / USDT</option>
                 <option value="ETHUSDT">ETH / USDT</option>
@@ -51,18 +52,18 @@
             </select>
         </div>
         <div class="group">
-            <label>Indicador</label>
+            <label>Estrategia</label>
             <select id="indType" onchange="toggleInd()">
                 <option value="RSI">RSI</option>
                 <option value="STOC">Estocástico</option>
             </select>
         </div>
         <div id="rsi-params">
-            <label>Periodo / Niveles (SC/SV)</label>
+            <label>Periodo / Niveles</label>
             <div style="display:flex; gap:5px">
-                <input type="number" id="rsi-p" value="14">
-                <input type="number" id="rsi-u" value="70">
-                <input type="number" id="rsi-l" value="30">
+                <input type="number" id="rsi-p" value="14" title="Periodo">
+                <input type="number" id="rsi-u" value="70" title="Sobrecompra">
+                <input type="number" id="rsi-l" value="30" title="Sobreventa">
             </div>
         </div>
         <div id="stoc-params" style="display:none">
@@ -74,57 +75,62 @@
             </div>
         </div>
         <div class="group"><label>Expiración (Velas)</label><input type="number" id="exp" value="1"></div>
-        <button onclick="ejecutar()">Analizar Mercado</button>
+        <button onclick="intentarConexion()">Catalogar Ahora</button>
     </div>
 
     <div class="main">
         <div class="card">
-            <h2 id="pairDisplay" style="margin:0; color:var(--accent)">BTC/USDT</h2>
+            <h2 id="pairDisplay" style="margin:0; color:var(--accent)">LISTO</h2>
             <div class="efficiency-val" id="eff">0%</div>
             <div class="history-grid" id="grid"></div>
         </div>
-        <div class="log-terminal" id="logger">> Sistema Medina Carrillo en línea.</div>
+        <div class="log-terminal" id="logger">> Iniciando sistema en GitHub Pages...</div>
     </div>
 
 <script>
-    function log(m) { document.getElementById('logger').innerHTML += `<br>> ${m}`; }
+    const log = m => { document.getElementById('logger').innerHTML += `<br>> ${m}`; document.getElementById('logger').scrollTop = 9999; };
+    
     function toggleInd() {
         const val = document.getElementById('indType').value;
         document.getElementById('rsi-params').style.display = val === 'RSI' ? 'block' : 'none';
         document.getElementById('stoc-params').style.display = val === 'STOC' ? 'block' : 'none';
     }
 
-    async function ejecutar() {
+    // Estrategia de reintentos múltiples
+    async function intentarConexion() {
         const pair = document.getElementById('pair').value;
         const tf = document.getElementById('tf').value;
-        log(`Conectando con Binance para ${pair}...`);
-
-        // Usamos AllOrigins como Proxy para asegurar que GitHub Pages no bloquee el CORS
         const targetUrl = `https://api.binance.com/api/v3/klines?symbol=${pair}&interval=${tf}&limit=500`;
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+        
+        log(`📡 Intentando conectar con ${pair}...`);
 
+        // Intento 1: Directo (algunos navegadores en GitHub lo permiten)
         try {
-            const response = await fetch(proxyUrl);
-            const json = await response.json();
-            const data = JSON.parse(json.contents); // Extraemos los datos reales
+            const res = await fetch(targetUrl);
+            if (res.ok) {
+                const data = await res.json();
+                return procesar(data);
+            }
+        } catch (e) { log("⚠️ Conexión directa bloqueada. Probando Túnel A..."); }
 
-            if (data && data.length > 0) {
-                log(`✅ Datos recibidos. Analizando señales...`);
-                procesar(data);
-            }
-        } catch (e) {
-            log(`❌ Error de conexión. Reintentando directo...`);
-            try {
-                const res2 = await fetch(targetUrl);
-                const data2 = await res2.json();
-                procesar(data2);
-            } catch (e2) {
-                log(`🛑 Fallo total. Verifica que el nombre del par sea correcto.`);
-            }
-        }
+        // Intento 2: Proxy AllOrigins
+        try {
+            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&timestamp=${Date.now()}`);
+            const json = await res.json();
+            const data = JSON.parse(json.contents);
+            if (data) return procesar(data);
+        } catch (e) { log("⚠️ Túnel A fallido. Probando Túnel B..."); }
+
+        // Intento 3: Proxy de Respaldo (Corsproxy.io)
+        try {
+            const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
+            const data = await res.json();
+            if (data) return procesar(data);
+        } catch (e) { log("❌ Error crítico: Todos los túneles están bloqueados por tu red."); }
     }
 
     function procesar(data) {
+        log("✅ Datos recibidos. Calculando...");
         const closes = data.map(d => parseFloat(d[4]));
         const highs = data.map(d => parseFloat(d[2]));
         const lows = data.map(d => parseFloat(d[3]));
@@ -164,7 +170,7 @@
         const wins = res.filter(r => r === 'win').length;
         document.getElementById('eff').innerText = (res.length > 0 ? Math.round((wins/res.length)*100) : 0) + "%";
         document.getElementById('pairDisplay').innerText = document.getElementById('pair').value;
-        log(`🎯 Análisis terminado.`);
+        log(`🎯 Análisis exitoso. ${res.length} señales.`);
     }
 
     // Inicializar grid vacío
