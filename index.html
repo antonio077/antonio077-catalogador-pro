@@ -2,11 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Catalogador Maestro | Medina Carrillo</title>
+    <title>Catalogador Alpha | Medina Carrillo</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <script src="https://cdn.jsdelivr.net/npm/technicalindicators@3.1.0/dist/browser.js"></script>
-
     <style>
         :root {
             --bg-color: #0b0b1a; --card-bg: #12122b; --text-main: #ffffff;
@@ -28,159 +25,116 @@
         .loss { background: var(--red-loss) !important; border: none !important; box-shadow: 0 0 15px var(--red-loss); }
         .log-terminal { margin-top: 20px; background: #000; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 11px; color: #00ff00; height: 120px; overflow-y: auto; border: 1px solid var(--border); text-align: left; }
         button { width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 8px; cursor: pointer; font-weight: 800; color: #0b0b1a; margin-top: 10px; text-transform: uppercase; transition: 0.3s; }
-        button:disabled { background: #2d2d5a; color: #8e8ea7; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
         <h4>Panel Medina Carrillo</h4>
-        
-        <div class="group">
-            <label>Activo Financiero</label>
+        <div class="group"><label>Activo</label>
             <select id="pair">
                 <option value="BTCUSDT">BTC / USDT</option>
                 <option value="ETHUSDT">ETH / USDT</option>
                 <option value="EURUSDT">EUR / USD</option>
             </select>
         </div>
-
-        <div class="group">
-            <label>Temporalidad</label>
+        <div class="group"><label>Temporalidad</label>
             <select id="tf">
                 <option value="1m">1m</option>
                 <option value="5m" selected>5m</option>
                 <option value="1h">1h</option>
             </select>
         </div>
-
-        <div class="group">
-            <label>Indicador</label>
-            <select id="indType" onchange="toggleParams()">
-                <option value="RSI">RSI (Relativo)</option>
-                <option value="STOC">Estocástico</option>
-            </select>
-        </div>
-
-        <div id="params-rsi" class="group">
-            <label>RSI: Periodo / SC - SV</label>
+        <div class="group"><label>RSI: Periodo / SC - SV</label>
             <div style="display:flex; gap:8px;">
                 <input type="number" id="rsi-p" value="14">
                 <input type="number" id="rsi-u" value="70">
                 <input type="number" id="rsi-l" value="30">
             </div>
         </div>
-
-        <div id="params-stoc" class="group" style="display:none;">
-            <label>STOCH: K / SC - SV</label>
-            <div style="display:flex; gap:8px;">
-                <input type="number" id="stoc-k" value="14">
-                <input type="number" id="stoc-u" value="80">
-                <input type="number" id="stoc-l" value="20">
-            </div>
-        </div>
-
-        <div class="group">
-            <label>Expiración (Velas)</label>
+        <div class="group"><label>Expiración (Velas)</label>
             <input type="number" id="exp" value="1">
         </div>
-
-        <button id="btnEjecutar" onclick="ejecutarAnalisis()">Iniciar Catalogación</button>
+        <button onclick="ejecutarAnalisis()">Iniciar Catalogación</button>
     </div>
 
     <div class="main">
         <div class="card">
-            <h2 id="pairDisplay" style="margin:0; color:var(--accent)">LISTO PARA ANALIZAR</h2>
+            <h2 id="pairDisplay" style="margin:0; color:var(--accent)">LISTO</h2>
             <div class="efficiency-val" id="eff">0%</div>
             <div class="history-grid" id="grid"></div>
         </div>
-        <div class="log-terminal" id="logger">> Cargando librerías...</div>
+        <div class="log-terminal" id="logger">> Sistema autónomo cargado.</div>
     </div>
 
 <script>
-    // URL DE TU GOOGLE APPS SCRIPT (Asegúrate de que sea la última generada)
-    const PROXY_URL = "https://script.google.com/macros/s/AKfycbxC4Goy3ID-pJ0svhmr7tIDzcmL8LE5SFaYvB2UQaVkumvppHaZ0cq86I8FsR2x3uTO7g/exec";
+    const PROXY_URL = "https://script.google.com/macros/s/AKfycbwNXuD_Du4pdjNBHG6NF3Lpks_J0Jv4i9-uGe7R4jQ-6WitKi909t0WA9Sywwcu7exdrg/exec";
 
-    const log = m => { 
+    function log(m) {
         const l = document.getElementById('logger');
-        l.innerHTML += `<br>> ${m}`; 
-        l.scrollTop = l.scrollHeight; 
-    };
-
-    function toggleParams() {
-        const type = document.getElementById('indType').value;
-        document.getElementById('params-rsi').style.display = type === 'RSI' ? 'block' : 'none';
-        document.getElementById('params-stoc').style.display = type === 'STOC' ? 'block' : 'none';
+        l.innerHTML += `<br>> ${m}`;
+        l.scrollTop = l.scrollHeight;
     }
 
-    // FUNCIÓN DE CARGA SEGURA
-    function verificarLibreria() {
-        if (typeof technicalindicators !== 'undefined') {
-            log("✅ Librería Técnica Cargada Correctamente.");
-            document.getElementById('btnEjecutar').disabled = false;
-        } else {
-            log("⏳ Esperando librería...");
-            setTimeout(verificarLibreria, 1000);
+    // MOTOR NATIVO RSI (Sin librerías externas)
+    function calcularRSI(data, period) {
+        let results = [];
+        let gains = [];
+        let losses = [];
+
+        for (let i = 1; i < data.length; i++) {
+            let diff = data[i] - data[i - 1];
+            gains.push(Math.max(0, diff));
+            losses.push(Math.max(0, -diff));
         }
+
+        let avgGain = gains.slice(0, period).reduce((a, b) => a + b) / period;
+        let avgLoss = losses.slice(0, period).reduce((a, b) => a + b) / period;
+
+        for (let i = period; i < data.length; i++) {
+            let rs = avgGain / (avgLoss || 0.00001);
+            results.push(100 - (100 / (1 + rs)));
+            avgGain = (avgGain * (period - 1) + gains[i]) / period;
+            avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
+        }
+        return results;
     }
 
     async function ejecutarAnalisis() {
         const pair = document.getElementById('pair').value;
         const tf = document.getElementById('tf').value;
-        log(`🚀 Solicitando datos vía Google Cloud...`);
+        log(`🚀 Conectando a Google Cloud para ${pair}...`);
 
         try {
             const response = await fetch(`${PROXY_URL}?pair=${pair}&tf=${tf}`);
             const data = await response.json();
 
             if (data && Array.isArray(data)) {
-                log(`✅ Datos recibidos. Analizando...`);
+                log(`✅ Datos obtenidos. Analizando nativamente...`);
                 procesar(data);
-            } else {
-                log("❌ Error: Respuesta de Google no es una lista.");
             }
         } catch (e) {
-            log(`🛑 Error de Conexión: Verifica el acceso del Google Script.`);
+            log(`🛑 Error: Failed to fetch. Revisa tu Google Script.`);
         }
     }
 
     function procesar(data) {
         try {
             const closes = data.map(d => parseFloat(d[4])).filter(n => !isNaN(n));
-            const highs = data.map(d => parseFloat(d[2])).filter(n => !isNaN(n));
-            const lows = data.map(d => parseFloat(d[3])).filter(n => !isNaN(n));
-            const type = document.getElementById('indType').value;
+            const pRSI = parseInt(document.getElementById('rsi-p').value);
             const exp = parseInt(document.getElementById('exp').value);
-            
-            let indicVal, sc, sv;
+            const sc = parseInt(document.getElementById('rsi-u').value);
+            const sv = parseInt(document.getElementById('rsi-l').value);
 
-            if(type === 'RSI') {
-                indicVal = technicalindicators.RSI.calculate({
-                    values: closes, 
-                    period: parseInt(document.getElementById('rsi-p').value)
-                });
-                sc = parseInt(document.getElementById('rsi-u').value);
-                sv = parseInt(document.getElementById('rsi-l').value);
-            } else {
-                const stoch = technicalindicators.Stochastic.calculate({
-                    high: highs, low: lows, close: closes,
-                    period: parseInt(document.getElementById('stoc-k').value),
-                    signalPeriod: 3
-                });
-                indicVal = stoch.map(s => s.k);
-                sc = parseInt(document.getElementById('stoc-u').value);
-                sv = parseInt(document.getElementById('stoc-l').value);
-            }
-
+            const rsiValues = calcularRSI(closes, pRSI);
             let resultados = [];
-            const offset = closes.length - indicVal.length;
+            const offset = closes.length - rsiValues.length;
 
             for (let i = closes.length - exp - 1; i >= offset; i--) {
-                const valActual = indicVal[i - offset];
-                if (valActual >= sc || valActual <= sv) {
-                    const esCompra = valActual <= sv;
-                    const gano = esCompra ? (closes[i+exp] > closes[i]) : (closes[i+exp] < closes[i]);
-                    resultados.push(gano ? 'win' : 'loss');
+                const val = rsiValues[i - offset];
+                if (val >= sc || val <= sv) {
+                    const win = val <= sv ? (closes[i + exp] > closes[i]) : (closes[i + exp] < closes[i]);
+                    resultados.push(win ? 'win' : 'loss');
                     if (resultados.length >= 20) break;
                 }
             }
@@ -193,28 +147,23 @@
                 grid.appendChild(d);
             });
 
-            while(grid.children.length < 20) {
-                grid.innerHTML += '<div class="box"></div>';
-            }
+            while(grid.children.length < 20) grid.innerHTML += '<div class="box"></div>';
 
             const wins = resultados.filter(r => r === 'win').length;
-            const eff = resultados.length > 0 ? Math.round((wins/resultados.length)*100) : 0;
+            const eff = resultados.length > 0 ? Math.round((wins / resultados.length) * 100) : 0;
             
             document.getElementById('eff').innerText = eff + "%";
-            document.getElementById('pairDisplay').innerText = pair;
-            log(`🎯 Análisis exitoso.`);
-
+            document.getElementById('pairDisplay').innerText = pair.value;
+            log(`🎯 Análisis finalizado.`);
         } catch (err) {
-            log(`❌ Error de cálculo: ${err.message}`);
+            log(`❌ Error: ${err.message}`);
         }
     }
 
-    // Iniciar verificación al cargar
+    // Rejilla inicial
     window.onload = () => {
-        document.getElementById('btnEjecutar').disabled = true;
         const grid = document.getElementById('grid');
         for(let i=0; i<20; i++) grid.innerHTML += '<div class="box"></div>';
-        verificarLibreria();
     };
 </script>
 </body>
