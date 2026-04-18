@@ -21,9 +21,9 @@
         .card { background-color: var(--card-bg); border-radius: 16px; padding: 25px; border: 1px solid var(--border); text-align: center; }
         .efficiency-val { font-size: 65px; font-weight: 700; color: var(--accent); margin: 15px 0; }
         .history-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 20px; }
-        .box { height: 45px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); transition: 0.3s; }
-        .box.win { background: var(--green-win); border: none; box-shadow: 0 0 20px rgba(0, 200, 83, 0.4); }
-        .box.loss { background: var(--red-loss); border: none; box-shadow: 0 0 20px rgba(255, 61, 0, 0.4); }
+        .box { height: 45px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); }
+        .box.win { background: var(--green-win); box-shadow: 0 0 15px var(--green-win); border: none; }
+        .box.loss { background: var(--red-loss); box-shadow: 0 0 15px var(--red-loss); border: none; }
         .log-terminal { margin-top: 20px; background: #000; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #00ff00; height: 120px; overflow-y: auto; border: 1px solid var(--border); }
         button { width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 8px; cursor: pointer; font-weight: 800; color: #0b0b1a; margin-top: 10px; text-transform: uppercase; }
     </style>
@@ -31,9 +31,9 @@
 <body>
 
     <div class="sidebar">
-        <h4>Estrategia Técnica</h4>
+        <h4>Panel de Control</h4>
         <div class="group">
-            <label>Par Operativo</label>
+            <label>Activo</label>
             <select id="pair">
                 <option value="BTCUSDT">BTC / USDT</option>
                 <option value="ETHUSDT">ETH / USDT</option>
@@ -51,14 +51,14 @@
             </select>
         </div>
         <div class="group">
-            <label>Indicador Maestro</label>
+            <label>Indicador</label>
             <select id="indType" onchange="toggleInd()">
-                <option value="RSI">RSI (Relative Strength)</option>
-                <option value="STOC">Estocástico (Stoch)</option>
+                <option value="RSI">RSI</option>
+                <option value="STOC">Estocástico</option>
             </select>
         </div>
         <div id="rsi-params">
-            <label>Periodo / Niveles</label>
+            <label>Periodo / SC / SV</label>
             <div style="display:flex; gap:5px">
                 <input type="number" id="rsi-p" value="14">
                 <input type="number" id="rsi-u" value="70">
@@ -74,16 +74,16 @@
             </div>
         </div>
         <div class="group"><label>Expiración (Velas)</label><input type="number" id="exp" value="1"></div>
-        <button onclick="superBypass()">EJECUTAR ANÁLISIS</button>
+        <button onclick="superConexion()">Catalogar Mercado</button>
     </div>
 
     <div class="main">
         <div class="card">
-            <h2 id="pairDisplay" style="margin:0; color:var(--accent)">SISTEMA LISTO</h2>
+            <h2 id="pairDisplay" style="margin:0; color:var(--accent)">SISTEMA MEDINA</h2>
             <div class="efficiency-val" id="eff">0%</div>
             <div class="history-grid" id="grid"></div>
         </div>
-        <div class="log-terminal" id="logger">> Protocolo Medina Carrillo cargado.</div>
+        <div class="log-terminal" id="logger">> Esperando orden de ejecución...</div>
     </div>
 
 <script>
@@ -95,87 +95,83 @@
         document.getElementById('stoc-params').style.display = val === 'STOC' ? 'block' : 'none';
     }
 
-    // EL "MARTILLO" FINAL: Bypass vía AllOrigins con manejo de contenido crudo
-    async function superBypass() {
+    async function superConexion() {
         const pair = document.getElementById('pair').value;
         const tf = document.getElementById('tf').value;
-        log(`💉 Intentando inyección de datos para ${pair}...`);
-        
         const binanceUrl = `https://api.binance.com/api/v3/klines?symbol=${pair}&interval=${tf}&limit=500`;
-        // Usamos AllOrigins pero pidiendo el JSON crudo directamente
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(binanceUrl)}`;
+        
+        log(`📡 Intentando conectar con ${pair}...`);
 
+        // Intento con Túnel B (el que funcionó antes)
         try {
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error('Proxy Fallido');
-            const data = await response.json();
-            
-            if (Array.isArray(data)) {
-                log(`✅ Conexión establecida. Procesando histórico...`);
-                procesar(data);
+            const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(binanceUrl)}`);
+            if (res.ok) {
+                const data = await res.json();
+                return procesar(data);
             }
-        } catch (e) {
-            log(`⚠️ Túnel saturado. Intentando vía CORSProxy...`);
-            try {
-                const res2 = await fetch(`https://corsproxy.io/?${encodeURIComponent(binanceUrl)}`);
-                const data2 = await res2.json();
-                procesar(data2);
-            } catch (e2) {
-                log(`🛑 BLOQUEO DE RED: Tu internet prohíbe el tráfico de datos externos.`);
-                log(`👉 SUGERENCIA: Desactiva extensiones de AdBlock o prueba con tus datos móviles.`);
+        } catch (e) { log("⚠️ Túnel B falló. Probando Túnel A..."); }
+
+        // Intento con Túnel A (AllOrigins Raw)
+        try {
+            const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(binanceUrl)}`);
+            if (res.ok) {
+                const data = await res.json();
+                return procesar(data);
             }
-        }
+        } catch (e) { log("🛑 Error de conexión total."); }
     }
 
     function procesar(data) {
-        const closes = data.map(d => parseFloat(d[4]));
-        const highs = data.map(d => parseFloat(d[2]));
-        const lows = data.map(d => parseFloat(d[3]));
-        const type = document.getElementById('indType').value;
-        const exp = parseInt(document.getElementById('exp').value);
-        
-        let indic, sc, sv;
-        if(type === 'RSI') {
-            indic = technicalindicators.RSI.calculate({values: closes, period: parseInt(document.getElementById('rsi-p').value)});
-            sc = parseInt(document.getElementById('rsi-up') ? document.getElementById('rsi-up').value : 70);
-            sv = parseInt(document.getElementById('rsi-low') ? document.getElementById('rsi-low').value : 30);
-            // Re-chequeo manual de IDs si fallan
-            sc = parseInt(document.getElementById('rsi-u').value);
-            sv = parseInt(document.getElementById('rsi-l').value);
-        } else {
-            const s = technicalindicators.Stochastic.calculate({high: highs, low: lows, close: closes, period: parseInt(document.getElementById('stoc-k').value), signalPeriod: 3});
-            indic = s.map(v => v.k);
-            sc = parseInt(document.getElementById('stoc-u').value);
-            sv = parseInt(document.getElementById('stoc-l').value);
-        }
-
-        let res = [];
-        const offset = closes.length - indic.length;
-        for (let i = closes.length - exp - 1; i >= offset; i--) {
-            const val = indic[i - offset];
-            if (val >= sc || val <= sv) {
-                const win = val <= sv ? (closes[i+exp] > closes[i]) : (closes[i+exp] < closes[i]);
-                res.push(win ? 'win' : 'loss');
-                if (res.length >= 20) break;
+        log("✅ Datos recibidos. Calculando...");
+        try {
+            const closes = data.map(d => parseFloat(d[4]));
+            const highs = data.map(d => parseFloat(d[2]));
+            const lows = data.map(d => parseFloat(d[3]));
+            const type = document.getElementById('indType').value;
+            const exp = parseInt(document.getElementById('exp').value);
+            
+            let indic, sc, sv;
+            if(type === 'RSI') {
+                indic = technicalindicators.RSI.calculate({values: closes, period: parseInt(document.getElementById('rsi-p').value)});
+                sc = parseInt(document.getElementById('rsi-u').value);
+                sv = parseInt(document.getElementById('rsi-l').value);
+            } else {
+                const s = technicalindicators.Stochastic.calculate({high: highs, low: lows, close: closes, period: parseInt(document.getElementById('stoc-k').value), signalPeriod: 3});
+                indic = s.map(v => v.k);
+                sc = parseInt(document.getElementById('stoc-u').value);
+                sv = parseInt(document.getElementById('stoc-l').value);
             }
-        }
 
-        const grid = document.getElementById('grid');
-        grid.innerHTML = '';
-        res.reverse().forEach(r => {
-            const d = document.createElement('div'); d.className = `box ${r}`;
-            grid.appendChild(d);
-        });
-        
-        const wins = res.filter(r => r === 'win').length;
-        document.getElementById('eff').innerText = (res.length > 0 ? Math.round((wins/res.length)*100) : 0) + "%";
-        document.getElementById('pairDisplay').innerText = document.getElementById('pair').value;
-        log(`🎯 Catalogación terminada con ${res.length} muestras.`);
+            let res = [];
+            const offset = closes.length - indic.length;
+            for (let i = closes.length - exp - 1; i >= offset; i--) {
+                const val = indic[i - offset];
+                if (val >= sc || val <= sv) {
+                    const win = val <= sv ? (closes[i+exp] > closes[i]) : (closes[i+exp] < closes[i]);
+                    res.push(win ? 'win' : 'loss');
+                    if (res.length >= 20) break;
+                }
+            }
+
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            res.reverse().forEach(r => {
+                const d = document.createElement('div'); d.className = `box ${r}`;
+                grid.appendChild(d);
+            });
+            
+            const wins = res.filter(r => r === 'win').length;
+            document.getElementById('eff').innerText = (res.length > 0 ? Math.round((wins/res.length)*100) : 0) + "%";
+            document.getElementById('pairDisplay').innerText = document.getElementById('pair').value;
+            log(`🎯 Análisis exitoso: ${res.length} señales encontradas.`);
+        } catch (err) {
+            log("❌ Error en el procesamiento de datos.");
+            console.error(err);
+        }
     }
 
     // Grid inicial
-    const g = document.getElementById('grid');
-    for(let i=0; i<20; i++) g.innerHTML += '<div class="box"></div>';
+    for(let i=0; i<20; i++) document.getElementById('grid').innerHTML += '<div class="box"></div>';
 </script>
 </body>
 </html>
