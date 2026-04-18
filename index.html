@@ -2,194 +2,146 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Catalogador Maestro | Medina Carrillo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogador Medina Carrillo | Live</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/technicalindicators@3.1.0/dist/browser.js"></script>
     <style>
         :root {
-            --bg-color: #0b0b1a; --card-bg: #12122b; --text-main: #ffffff;
-            --text-dim: #8e8ea7; --green-win: #00c853; --red-loss: #ff3d00;
-            --accent: #00ffcc; --border: #2d2d5a;
+            --bg: #0f172a; --card: #1e293b; --accent: #38bdf8;
+            --green: #22c55e; --red: #ef4444; --text: #f8fafc;
         }
-        body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Inter', sans-serif; display: flex; padding: 20px; margin: 0; min-height: 100vh; }
-        .sidebar { width: 340px; background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border); height: fit-content; position: sticky; top: 20px; }
-        h4 { margin: 0 0 15px 0; color: var(--accent); text-transform: uppercase; font-size: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        .group { margin-bottom: 12px; }
-        label { font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 5px; font-weight: 600; }
-        select, input { background: #0b0b1a; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 6px; width: 100%; font-size: 13px; outline: none; }
-        .dynamic-params { background: rgba(0, 255, 204, 0.05); padding: 10px; border-radius: 8px; border-left: 3px solid var(--accent); margin-top: 10px; }
-        .main { flex: 1; margin-left: 30px; }
-        .card { background-color: var(--card-bg); border-radius: 16px; padding: 25px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .pair-title { font-size: 28px; font-weight: 700; margin: 0; color: var(--accent); }
-        .efficiency-val { font-size: 50px; font-weight: 700; color: var(--accent); text-shadow: 0 0 20px rgba(0,255,204,0.4); }
-        .history-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 20px; }
-        .box { height: 40px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); transition: 0.5s; }
-        .box.win { background: var(--green-win); border: none; box-shadow: 0 0 15px var(--green-win); transform: scale(1.05); }
-        .box.loss { background: var(--red-loss); border: none; box-shadow: 0 0 15px var(--red-loss); transform: scale(1.05); }
-        .log-terminal { margin-top: 20px; background: #000; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 11px; color: #00ff00; height: 130px; overflow-y: auto; border: 1px solid var(--border); }
-        button { width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 8px; cursor: pointer; font-weight: 800; color: #0b0b1a; margin-top: 10px; text-transform: uppercase; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { max-width: 900px; width: 100%; display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+        .panel { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #334155; height: fit-content; }
+        .main-view { background: var(--card); padding: 30px; border-radius: 12px; border: 1px solid #334155; text-align: center; }
+        
+        select, input { width: 100%; padding: 10px; margin: 8px 0 15px 0; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: var(--accent); color: #0f172a; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px; }
+        .box { height: 45px; border-radius: 6px; background: #334155; transition: 0.5s; }
+        .win { background: var(--green); box-shadow: 0 0 15px var(--green); }
+        .loss { background: var(--red); box-shadow: 0 0 15px var(--red); }
+        
+        .efficiency { font-size: 4rem; font-weight: 800; color: var(--accent); margin: 10px 0; }
+        .log { margin-top: 20px; font-family: monospace; font-size: 11px; color: #94a3b8; text-align: left; max-height: 100px; overflow-y: auto; }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
-        <h4>Panel Medina Carrillo</h4>
+<div class="container">
+    <div class="panel">
+        <label>Activo</label>
+        <select id="pair">
+            <option value="BTCUSDT">BTC/USDT</option>
+            <option value="ETHUSDT">ETH/USDT</option>
+            <option value="EURUSDT">EUR/USD</option>
+            <option value="GBPUSDT">GBP/USD</option>
+        </select>
+
+        <label>Temporalidad</label>
+        <select id="tf">
+            <option value="1m">1m</option><option value="5m" selected>5m</option>
+            <option value="15m">15m</option><option value="1h">1h</option>
+        </select>
+
+        <label>Indicador</label>
+        <select id="ind" onchange="document.getElementById('p-rsi').style.display = this.value=='RSI'?'block':'none'; document.getElementById('p-stoc').style.display = this.value=='STOC'?'block':'none';">
+            <option value="RSI">RSI</option>
+            <option value="STOC">Estocástico</option>
+        </select>
+
+        <div id="p-rsi">
+            <label>Periodo / Niveles</label>
+            <div style="display:flex; gap:5px">
+                <input type="number" id="r-p" value="14">
+                <input type="number" id="r-u" value="70">
+                <input type="number" id="r-l" value="30">
+            </div>
+        </div>
+
+        <div id="p-stoc" style="display:none">
+            <label>K / SC / SV</label>
+            <div style="display:flex; gap:5px">
+                <input type="number" id="s-k" value="14">
+                <input type="number" id="s-u" value="80">
+                <input type="number" id="s-l" value="20">
+            </div>
+        </div>
+
+        <label>Expira (Velas)</label>
+        <input type="number" id="exp" value="1">
         
-        <div class="group">
-            <label>Activo</label>
-            <select id="pair">
-                <option value="BTCUSDT">BTC / USDT</option>
-                <option value="ETHUSDT">ETH / USDT</option>
-                <option value="SOLUSDT">SOL / USDT</option>
-                <option value="EURUSDT">EUR / USD</option>
-            </select>
-        </div>
-
-        <div class="group">
-            <label>Temporalidad</label>
-            <select id="tf">
-                <option value="1m">1m</option>
-                <option value="5m" selected>5m</option>
-                <option value="15m">15m</option>
-                <option value="1h">1h</option>
-            </select>
-        </div>
-
-        <div class="group">
-            <label>Indicador</label>
-            <select id="indicator-type" onchange="toggleParams()">
-                <option value="RSI">RSI</option>
-                <option value="STOC">Estocástico</option>
-            </select>
-        </div>
-
-        <div id="params-rsi" class="dynamic-params">
-            <label>Periodo RSI</label><input type="number" id="rsi-period" value="14">
-            <div style="display:flex; gap:8px; margin-top:8px;">
-                <div><label>SC</label><input type="number" id="rsi-up" value="70"></div>
-                <div><label>SV</label><input type="number" id="rsi-low" value="30"></div>
-            </div>
-        </div>
-
-        <div id="params-stoc" class="dynamic-params" style="display:none;">
-            <label>Periodo K</label><input type="number" id="stoc-k" value="14">
-            <div style="display:flex; gap:8px; margin-top:8px;">
-                <div><label>SC</label><input type="number" id="stoc-up" value="80"></div>
-                <div><label>SV</label><input type="number" id="stoc-low" value="20"></div>
-            </div>
-        </div>
-
-        <div class="group"><label>Expiración (Velas)</label><input type="number" id="exp-v" value="1"></div>
-        <button onclick="solicitarDatosJSONP()">FORZAR ANÁLISIS</button>
+        <button onclick="run()">CATALOGAR</button>
     </div>
 
-    <div class="main">
-        <div class="card">
-            <div class="header">
-                <div><p id="pairText" class="pair-title">Esperando...</p><span id="statusText">Sistema Anti-Bloqueo Activo</span></div>
-                <div class="efficiency-val" id="eff-main">0%</div>
-            </div>
-            <div class="history-grid" id="grid"></div>
-        </div>
-        <div class="log-terminal" id="logger">> Terminal lista para Bypass.</div>
+    <div class="main-view">
+        <h2 id="displayPair">LISTO</h2>
+        <div class="efficiency" id="eff">0%</div>
+        <div class="grid" id="grid"></div>
+        <div class="log" id="log">> Esperando ejecución...</div>
     </div>
+</div>
 
 <script>
-    function log(m) {
-        const l = document.getElementById('logger');
-        l.innerHTML += `<br>> ${m}`;
-        l.scrollTop = l.scrollHeight;
-    }
-
-    function toggleParams() {
-        const type = document.getElementById('indicator-type').value;
-        document.getElementById('params-rsi').style.display = type === 'RSI' ? 'block' : 'none';
-        document.getElementById('params-stoc').style.display = type === 'STOC' ? 'block' : 'none';
-    }
-
-    // EL ÚLTIMO RECURSO: Cargar datos como si fueran una librería JS
-    function solicitarDatosJSONP() {
+    async function run() {
         const pair = document.getElementById('pair').value;
         const tf = document.getElementById('tf').value;
-        document.getElementById('pairText').innerText = pair;
-        log(`💉 Inyectando script de datos para ${pair}...`);
-
-        // Usamos AllOrigins pero con el método de "script inyectado"
-        const binanceUrl = `https://api.binance.com/api/v3/klines?symbol=${pair}&interval=${tf}&limit=500`;
-        const bypassUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(binanceUrl)}&callback=miCallback`;
-
-        const script = document.createElement('script');
-        script.src = bypassUrl;
+        const log = m => document.getElementById('log').innerText = "> " + m;
         
-        // Limpiamos scripts antiguos para no saturar
-        const oldScript = document.getElementById('bypass-script');
-        if(oldScript) oldScript.remove();
+        log(`Conectando con Binance (${pair})...`);
         
-        script.id = 'bypass-script';
-        document.body.appendChild(script);
-    }
-
-    // Esta función recibe los datos cuando el script termina de cargar
-    function miCallback(data) {
         try {
-            const rawData = JSON.parse(data.contents);
-            log(`✅ Script cargado. Procesando indicadores...`);
-            procesar(rawData);
-        } catch(e) {
-            log(`❌ Error al interpretar datos. Verificando integridad...`);
-        }
-    }
-
-    function procesar(data) {
-        const type = document.getElementById('indicator-type').value;
-        const exp = parseInt(document.getElementById('exp-v').value);
-        const closes = data.map(d => parseFloat(d[4]));
-        const highs = data.map(d => parseFloat(d[2]));
-        const lows = data.map(d => parseFloat(d[3]));
-
-        let indic, up, low;
-        if(type === 'RSI') {
-            indic = technicalindicators.RSI.calculate({ values: closes, period: parseInt(document.getElementById('rsi-period').value) });
-            up = parseInt(document.getElementById('rsi-up').value);
-            low = parseInt(document.getElementById('rsi-low').value);
-        } else {
-            const stoch = technicalindicators.Stochastic.calculate({ high: highs, low: lows, close: closes, period: parseInt(document.getElementById('stoc-k').value), signalPeriod: 3 });
-            indic = stoch.map(s => s.k);
-            up = parseInt(document.getElementById('stoc-up').value);
-            low = parseInt(document.getElementById('stoc-low').value);
-        }
-
-        let results = [];
-        const offset = closes.length - indic.length;
-        for (let i = closes.length - exp - 1; i >= offset; i--) {
-            const val = indic[i - offset];
-            if (val >= up || val <= low) {
-                const win = (val <= low) ? (closes[i+exp] > closes[i]) : (closes[i+exp] < closes[i]);
-                results.push(win ? 'win' : 'loss');
-                if (results.length >= 20) break;
+            const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${pair}&interval=${tf}&limit=500`);
+            const data = await res.json();
+            
+            const closes = data.map(d => parseFloat(d[4]));
+            const highs = data.map(d => parseFloat(d[2]));
+            const lows = data.map(d => parseFloat(d[3]));
+            const type = document.getElementById('ind').value;
+            const exp = parseInt(document.getElementById('exp').value);
+            
+            let indVal, up, lw;
+            if(type === 'RSI') {
+                indVal = technicalindicators.RSI.calculate({values: closes, period: parseInt(document.getElementById('r-p').value)});
+                up = parseInt(document.getElementById('r-u').value); lw = parseInt(document.getElementById('r-l').value);
+            } else {
+                const s = technicalindicators.Stochastic.calculate({high: highs, low: lows, close: closes, period: parseInt(document.getElementById('s-k').value), signalPeriod: 3});
+                indVal = s.map(v => v.k);
+                up = parseInt(document.getElementById('s-u').value); lw = parseInt(document.getElementById('s-l').value);
             }
-        }
-        
-        const grid = document.getElementById('grid');
-        grid.innerHTML = '';
-        results.reverse().forEach(r => {
-            const div = document.createElement('div');
-            div.className = `box ${r}`;
-            grid.appendChild(div);
-        });
 
-        const wins = results.filter(r => r === 'win').length;
-        document.getElementById('eff-main').innerText = (results.length > 0 ? Math.round((wins/results.length)*100) : 0) + "%";
-        log(`🎯 Catalogación exitosa.`);
+            let resList = [];
+            const off = closes.length - indVal.length;
+            for(let i = closes.length - exp - 1; i >= off; i--) {
+                const v = indVal[i-off];
+                if(v >= up || v <= lw) {
+                    const win = v <= lw ? closes[i+exp] > closes[i] : closes[i+exp] < closes[i];
+                    resList.push(win ? 'win' : 'loss');
+                    if(resList.length >= 20) break;
+                }
+            }
+
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            resList.reverse().forEach(r => {
+                const d = document.createElement('div'); d.className = `box ${r}`;
+                grid.appendChild(d);
+            });
+
+            const wins = resList.filter(r => r==='win').length;
+            document.getElementById('eff').innerText = Math.round((wins/resList.length)*100) + "%";
+            document.getElementById('displayPair').innerText = pair;
+            log("Análisis exitoso.");
+        } catch(e) {
+            log("Error de conexión. Prueba subiendo el archivo a GitHub Pages.");
+        }
     }
 
-    window.onload = () => {
-        const grid = document.getElementById('grid');
-        for(let i=0; i<20; i++) {
-            const b = document.createElement('div'); b.className = 'box'; grid.appendChild(b);
-        }
-    };
+    // Grid inicial
+    for(let i=0; i<20; i++) document.getElementById('grid').innerHTML += '<div class="box"></div>';
 </script>
 </body>
 </html>
