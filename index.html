@@ -7,7 +7,7 @@
     <style>
         :root { --bg: #0b0b1a; --card: #12122b; --accent: #00ffcc; --text: #fff; --green: #00c853; --red: #ff3d00; --border: #2d2d5a; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; display: flex; padding: 20px; margin: 0; min-height: 100vh; }
-        .sidebar { width: 320px; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); height: fit-content; position: sticky; top: 20px; }
+        .sidebar { width: 340px; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); height: fit-content; position: sticky; top: 20px; }
         .main { flex: 1; margin-left: 30px; }
         .card { background: var(--card); border-radius: 16px; padding: 25px; border: 1px solid var(--border); text-align: center; }
         .efficiency-val { font-size: 65px; font-weight: 700; color: var(--accent); margin: 15px 0; }
@@ -16,88 +16,74 @@
         .win { background: var(--green) !important; box-shadow: 0 0 15px var(--green); border: none !important; }
         .loss { background: var(--red) !important; box-shadow: 0 0 15px var(--red); border: none !important; }
         .log-terminal { margin-top: 20px; background: #000; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #00ff00; height: 100px; overflow-y: auto; border: 1px solid var(--border); text-align: left; }
-        select, input, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid var(--border); background: #0b0b1a; color: #fff; box-sizing: border-box; }
-        button { background: var(--accent); color: #0b0b1a; font-weight: 800; cursor: pointer; border: none; text-transform: uppercase; }
+        select, input, textarea, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid var(--border); background: #0b0b1a; color: #fff; box-sizing: border-box; }
+        textarea { height: 60px; font-size: 10px; border-color: var(--accent); resize: none; }
+        button { background: var(--accent); color: #0b0b1a; font-weight: 800; cursor: pointer; border: none; text-transform: uppercase; margin-top: 15px; }
         label { font-size: 10px; color: #8e8ea7; font-weight: 600; display: block; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <h4 style="color:var(--accent); margin-top:0">PANEL DE CONTROL</h4>
-        <label>Activo</label>
-        <select id="pair"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option></select>
-        <label>Temporalidad</label>
-        <select id="tf"><option value="1m">1m</option><option value="5m" selected>5m</option></select>
+        <h4 style="color:var(--accent); margin-top:0">BYPASS MEDINA CARRILLO</h4>
+        <label>Paso 1: Copia esta URL y ábrela en otra pestaña</label>
+        <input type="text" id="urlHelp" readonly value="https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=5m&limit=500">
+        
+        <label>Paso 2: Pega aquí todo lo que aparezca</label>
+        <textarea id="rawData" placeholder="Pega los datos aquí..."></textarea>
+        
         <label>RSI: Periodo / SC - SV</label>
         <div style="display:flex; gap:5px">
             <input type="number" id="rsi-p" value="14">
             <input type="number" id="rsi-u" value="70">
             <input type="number" id="rsi-l" value="30">
         </div>
-        <button id="mainBtn" onclick="disparar()">EJECUTAR SISTEMA</button>
+        
+        <button onclick="procesarManual()">ANALIZAR DATOS</button>
     </div>
 
     <div class="main">
         <div class="card">
-            <h2 id="pairDisplay" style="margin:0; color:var(--accent)">ANALIZADOR PRO</h2>
+            <h2 style="margin:0; color:var(--accent)">ESTADO DE ESTRATEGIA</h2>
             <div class="efficiency-val" id="eff">0%</div>
             <div class="history-grid" id="grid"></div>
         </div>
-        <div class="log-terminal" id="logger">> Sistema listo.</div>
+        <div class="log-terminal" id="logger">> Esperando inyección manual de datos...</div>
     </div>
 
 <script>
-    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbzkUwhMLKuqo1dPx8-Hd2EGOUhWTvM_g4kllaKVsSPJHrPqTfQlaaINqLg8_rxogRzjHw/exec"; // Pega la URL del paso 1
-    let timeoutRef;
-
     function log(m) { document.getElementById('logger').innerHTML += `<br>> ${m}`; }
 
-    // Función que recibe los datos
-    window.googleCallback = function(data) {
-        clearTimeout(timeoutRef); // Detenemos el reloj de emergencia
-        document.getElementById('mainBtn').disabled = false;
+    function procesarManual() {
+        const raw = document.getElementById('rawData').value;
+        if(!raw) { log("❌ No has pegado datos."); return; }
         
-        if(data.error) { log(`❌ Error Google: ${data.error}`); return; }
-        
-        log(`✅ Datos recibidos. Analizando...`);
         try {
+            const data = JSON.parse(raw);
+            log(`✅ ${data.length} velas cargadas. Calculando...`);
+            
             const closes = data.map(d => parseFloat(d[4]));
             const pRSI = parseInt(document.getElementById('rsi-p').value);
-            const rsi = calcularRSI(closes, pRSI);
-            
             const sc = parseInt(document.getElementById('rsi-u').value);
             const sv = parseInt(document.getElementById('rsi-l').value);
-            let res = [];
             
-            for (let i = closes.length - 2; i >= closes.length - 200; i--) {
-                const val = rsi[i - (closes.length - rsi.length)];
+            const rsi = calcularRSI(closes, pRSI);
+            let res = [];
+            const offset = closes.length - rsi.length;
+            
+            for (let i = closes.length - 2; i >= offset; i--) {
+                const val = rsi[i - offset];
                 if (val >= sc || val <= sv) {
                     const win = val <= sv ? (closes[i+1] > closes[i]) : (closes[i+1] < closes[i]);
                     res.push(win ? 'win' : 'loss');
                     if (res.length >= 20) break;
                 }
             }
+            
             dibujar(res);
-        } catch(e) { log(`❌ Error procesando: ${e.message}`); }
-    };
-
-    function disparar() {
-        const p = document.getElementById('pair').value;
-        const t = document.getElementById('tf').value;
-        log(`🚀 Abriendo túnel para ${p}...`);
-        document.getElementById('mainBtn').disabled = true;
-
-        // RELOJ DE EMERGENCIA: Si en 15 seg no hay respuesta, reiniciamos
-        timeoutRef = setTimeout(() => {
-            log(`⚠️ Tiempo excedido. Reintentando túnel...`);
-            document.getElementById('mainBtn').disabled = false;
-        }, 15000);
-
-        const script = document.createElement('script');
-        script.src = `${GOOGLE_URL}?pair=${p}&tf=${t}&callback=googleCallback`;
-        document.body.appendChild(script);
-        setTimeout(() => script.remove(), 10000);
+        } catch(e) {
+            log("❌ Error: Los datos pegados no son válidos.");
+        }
     }
 
     function calcularRSI(data, p) {
@@ -119,6 +105,7 @@
         res.reverse().forEach(r => {
             const d = document.createElement('div'); d.className = `box ${r}`; g.appendChild(d);
         });
+        while(g.children.length < 20) g.innerHTML += '<div class="box"></div>';
         const w = res.filter(r => r === 'win').length;
         document.getElementById('eff').innerText = (res.length ? Math.round((w/res.length)*100) : 0) + "%";
         log(`🎯 Catalogación terminada.`);
