@@ -2,89 +2,181 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Catalogador Maestro | Medina Carrillo</title>
+    <title>Catalogador Alpha | Medina Carrillo</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/technicalindicators@3.1.0/dist/browser.js"></script>
     <style>
-        :root { --bg: #0b0b1a; --card: #12122b; --accent: #00ffcc; --text: #ffffff; --border: #2d2d5a; }
+        :root {
+            --bg: #0b0b1a; --card: #12122b; --accent: #00ffcc; --text: #ffffff;
+            --dim: #8e8ea7; --green: #00c853; --red: #ff3d00; --border: #2d2d5a;
+        }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; display: flex; padding: 20px; margin: 0; min-height: 100vh; }
         .sidebar { width: 320px; background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); height: fit-content; }
         .main { flex: 1; margin-left: 30px; }
-        .card { background: var(--card); border-radius: 16px; padding: 25px; border: 1px solid var(--border); text-align: center; }
-        .efficiency { font-size: 70px; font-weight: 800; color: var(--accent); text-shadow: 0 0 20px rgba(0,255,204,0.3); }
+        .card { background: var(--card); border-radius: 16px; padding: 25px; border: 1px solid var(--border); text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .efficiency { font-size: 70px; font-weight: 800; color: var(--accent); margin: 15px 0; }
         .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px; }
         .box { height: 45px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); }
-        .win { background: #00c853 !important; border: none !important; box-shadow: 0 0 15px #00c853; }
-        .loss { background: #ff3d00 !important; border: none !important; box-shadow: 0 0 15px #ff3d00; }
-        .log { margin-top: 20px; background: #000; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #00ff00; height: 100px; overflow-y: auto; text-align: left; }
-        select, input, button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid var(--border); background: #0b0b1a; color: white; outline: none; }
-        button { background: var(--accent); color: #0b0b1a; font-weight: 800; cursor: pointer; border: none; }
+        .win { background: var(--green) !important; box-shadow: 0 0 15px var(--green); border: none !important; }
+        .loss { background: var(--red) !important; box-shadow: 0 0 15px var(--red); border: none !important; }
+        .log { margin-top: 20px; background: #000; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 11px; color: #00ff00; height: 100px; overflow-y: auto; border: 1px solid var(--border); }
+        select, input, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid var(--border); background: #0b0b1a; color: white; outline: none; box-sizing: border-box; }
+        button { background: var(--accent); color: #0b0b1a; font-weight: 800; cursor: pointer; border: none; margin-top: 20px; text-transform: uppercase; }
+        label { font-size: 11px; color: var(--dim); font-weight: 600; text-transform: uppercase; margin-top: 10px; display: block; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <h3 style="color:var(--accent); margin-top:0">CONFIGURACIÓN</h3>
+    <h4 style="color:var(--accent); margin:0 0 15px 0; border-bottom: 1px solid var(--border); padding-bottom: 10px;">CONFIGURACIÓN</h4>
+    
     <label>Activo</label>
-    <select id="pair"><option value="BTCUSDT">BTC/USDT</option><option value="ETHUSDT">ETH/USDT</option></select>
+    <select id="pair">
+        <option value="BTCUSDT">BTC / USDT</option>
+        <option value="ETHUSDT">ETH / USDT</option>
+        <option value="EURUSDT">EUR / USD</option>
+    </select>
+
     <label>Temporalidad</label>
-    <select id="tf"><option value="1m">1m</option><option value="5m" selected>5m</option></select>
-    <label>Expiración</label>
+    <select id="tf">
+        <option value="1m">1m</option>
+        <option value="5m" selected>5m</option>
+        <option value="15m">15m</option>
+    </select>
+
+    <label>Periodo RSI</label>
+    <input type="number" id="rsi-p" value="14">
+
+    <label>Expiración (Velas)</label>
     <input type="number" id="exp" value="1">
-    <button onclick="ejecutar()">ANALIZAR AHORA</button>
+
+    <button onclick="iniciarAnalisis()">Ejecutar Catalogador</button>
 </div>
 
 <div class="main">
     <div class="card">
-        <h2 id="pairName">SISTEMA LISTO</h2>
+        <h2 id="pairTitle" style="margin:0; color:var(--accent)">LISTO</h2>
         <div class="efficiency" id="eff">0%</div>
         <div class="grid" id="grid"></div>
     </div>
-    <div class="log" id="log">> Esperando orden de ejecución...</div>
+    <div class="log" id="terminal">> Esperando datos...</div>
 </div>
 
 <script>
-    const GOOGLE_URL = "https://script.google.com/macros/s/AKfycbwNXuD_Du4pdjNBHG6NF3Lpks_J0Jv4i9-uGe7R4jQ-6WitKi909t0WA9Sywwcu7exdrg/exec"; // <--- PEGA TU LINK AQUÍ
+    const log = m => { 
+        const t = document.getElementById('terminal');
+        t.innerHTML += `<br>> ${m}`; 
+        t.scrollTop = t.scrollHeight; 
+    };
 
-    async function ejecutar() {
-        const p = document.getElementById('pair').value;
-        const t = document.getElementById('tf').value;
-        const logger = document.getElementById('log');
-        logger.innerText = `> Google Cloud analizando ${p}...`;
+    async function iniciarAnalisis() {
+        const pair = document.getElementById('pair').value;
+        const tf = document.getElementById('tf').value;
+        log(`📡 Conectando a Binance: ${pair}...`);
+
+        const url = `https://api.binance.com/api/v3/klines?symbol=${pair}&interval=${tf}&limit=500`;
+        const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&ts=${Date.now()}`;
 
         try {
-            const res = await fetch(`${GOOGLE_URL}?pair=${p}&tf=${t}`);
-            const data = await res.json();
-            
-            const closes = data.map(d => parseFloat(d[4]));
-            const rsi = technicalindicators.RSI.calculate({values: closes, period: 14});
-            
-            let resList = [];
-            for (let i = closes.length - 2; i >= closes.length - 100; i--) {
-                let v = rsi[i - (closes.length - rsi.length)];
-                if (v >= 70 || v <= 30) {
-                    let win = v <= 30 ? closes[i+1] > closes[i] : closes[i+1] < closes[i];
-                    resList.push(win ? 'win' : 'loss');
-                    if (resList.length >= 20) break;
+            const response = await fetch(proxy);
+            const json = await response.json();
+            const rawData = JSON.parse(json.contents);
+
+            if (rawData && rawData.length > 0) {
+                log(`✅ Datos recibidos (${rawData.length} velas).`);
+                procesarEstrategia(rawData);
+            }
+        } catch (e) {
+            log(`❌ Error de red. Intentando vía secundaria...`);
+            // Intento directo si el proxy falla
+            try {
+                const resDirect = await fetch(url);
+                const dataDirect = await resDirect.json();
+                procesarEstrategia(dataDirect);
+            } catch (e2) {
+                log(`🛑 Bloqueo total. Verifica tu conexión.`);
+            }
+        }
+    }
+
+    function procesarEstrategia(data) {
+        try {
+            // 1. Limpieza y conversión estricta a números
+            const closes = data.map(d => parseFloat(d[4])).filter(n => !isNaN(n));
+            const pRSI = parseInt(document.getElementById('rsi-p').value);
+            const exp = parseInt(document.getElementById('exp').value);
+
+            log(`Calculando RSI de ${pRSI} periodos...`);
+
+            // 2. Cálculo del indicador
+            const rsiValues = technicalindicators.RSI.calculate({
+                values: closes,
+                period: pRSI
+            });
+
+            if (!rsiValues || rsiValues.length === 0) {
+                throw new Error("No se pudieron generar valores de RSI");
+            }
+
+            // 3. Catalogación de señales
+            let resultados = [];
+            const offset = closes.length - rsiValues.length;
+
+            // Recorremos de atrás hacia adelante para ver efectividad histórica
+            for (let i = closes.length - exp - 1; i >= offset; i--) {
+                const rsiActual = rsiValues[i - offset];
+                
+                if (rsiActual >= 70 || rsiActual <= 30) {
+                    const esCompra = rsiActual <= 30;
+                    const precioEntrada = closes[i];
+                    const precioCierre = closes[i + exp];
+
+                    let gano = esCompra ? (precioCierre > precioEntrada) : (precioCierre < precioEntrada);
+                    resultados.push(gano ? 'win' : 'loss');
+
+                    if (resultados.length >= 20) break;
                 }
             }
 
+            // 4. Actualización Visual
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
-            resList.reverse().forEach(r => {
-                const d = document.createElement('div'); d.className = `box ${r}`;
-                grid.appendChild(d);
+            
+            if (resultados.length === 0) {
+                log("⚠️ No se encontraron señales de sobrecompra/venta en este periodo.");
+            }
+
+            resultados.reverse().forEach(res => {
+                const div = document.createElement('div');
+                div.className = `box ${res}`;
+                grid.appendChild(div);
             });
 
-            const wins = resList.filter(r => r === 'win').length;
-            document.getElementById('eff').innerText = Math.round((wins/resList.length)*100) + "%";
-            document.getElementById('pairName').innerText = p;
-            logger.innerText = "> Análisis exitoso vía Google Cloud.";
-        } catch (e) {
-            logger.innerText = "> Error: Asegúrate de que la URL de Google Script sea correcta.";
+            // Rellenar vacíos
+            while(grid.children.length < 20) {
+                const b = document.createElement('div'); b.className = 'box'; grid.appendChild(b);
+            }
+
+            const wins = resultados.filter(r => r === 'win').length;
+            const porcentaje = resultados.length > 0 ? Math.round((wins / resultados.length) * 100) : 0;
+            
+            document.getElementById('eff').innerText = porcentaje + "%";
+            document.getElementById('pairTitle').innerText = document.getElementById('pair').value;
+            log(`🎯 Análisis finalizado con éxito.`);
+
+        } catch (err) {
+            log(`❌ Error en cálculo: ${err.message}`);
+            console.error(err);
         }
     }
-    for(let i=0; i<20; i++) document.getElementById('grid').innerHTML += '<div class="box"></div>';
+
+    // Inicializar rejilla
+    window.onload = () => {
+        const grid = document.getElementById('grid');
+        for(let i=0; i<20; i++) {
+            const b = document.createElement('div'); b.className = 'box'; grid.appendChild(b);
+        }
+    };
 </script>
 </body>
 </html>
