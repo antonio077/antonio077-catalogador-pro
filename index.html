@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <title>Catalogador Maestro | Medina Carrillo</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/technicalindicators@3.1.0/dist/browser.js"></script>
+
     <style>
         :root {
             --bg-color: #0b0b1a; --card-bg: #12122b; --text-main: #ffffff;
@@ -26,20 +28,19 @@
         .loss { background: var(--red-loss) !important; border: none !important; box-shadow: 0 0 15px var(--red-loss); }
         .log-terminal { margin-top: 20px; background: #000; padding: 15px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 11px; color: #00ff00; height: 120px; overflow-y: auto; border: 1px solid var(--border); text-align: left; }
         button { width: 100%; padding: 14px; background: var(--accent); border: none; border-radius: 8px; cursor: pointer; font-weight: 800; color: #0b0b1a; margin-top: 10px; text-transform: uppercase; transition: 0.3s; }
-        button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        button:disabled { background: #2d2d5a; color: #8e8ea7; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <h4>Panel de Estrategia</h4>
+        <h4>Panel Medina Carrillo</h4>
         
         <div class="group">
             <label>Activo Financiero</label>
             <select id="pair">
                 <option value="BTCUSDT">BTC / USDT</option>
                 <option value="ETHUSDT">ETH / USDT</option>
-                <option value="SOLUSDT">SOL / USDT</option>
                 <option value="EURUSDT">EUR / USD</option>
             </select>
         </div>
@@ -49,30 +50,29 @@
             <select id="tf">
                 <option value="1m">1m</option>
                 <option value="5m" selected>5m</option>
-                <option value="15m">15m</option>
                 <option value="1h">1h</option>
             </select>
         </div>
 
         <div class="group">
-            <label>Indicador Maestro</label>
+            <label>Indicador</label>
             <select id="indType" onchange="toggleParams()">
-                <option value="RSI">RSI (Relative Strength Index)</option>
-                <option value="STOC">Estocástico (Stochastic)</option>
+                <option value="RSI">RSI (Relativo)</option>
+                <option value="STOC">Estocástico</option>
             </select>
         </div>
 
         <div id="params-rsi" class="group">
-            <label>Periodo / Niveles (SC - SV)</label>
+            <label>RSI: Periodo / SC - SV</label>
             <div style="display:flex; gap:8px;">
-                <input type="number" id="rsi-p" value="14" placeholder="P">
-                <input type="number" id="rsi-u" value="70" placeholder="SC">
-                <input type="number" id="rsi-l" value="30" placeholder="SV">
+                <input type="number" id="rsi-p" value="14">
+                <input type="number" id="rsi-u" value="70">
+                <input type="number" id="rsi-l" value="30">
             </div>
         </div>
 
         <div id="params-stoc" class="group" style="display:none;">
-            <label>K / Niveles (SC - SV)</label>
+            <label>STOCH: K / SC - SV</label>
             <div style="display:flex; gap:8px;">
                 <input type="number" id="stoc-k" value="14">
                 <input type="number" id="stoc-u" value="80">
@@ -85,27 +85,27 @@
             <input type="number" id="exp" value="1">
         </div>
 
-        <button onclick="ejecutarAnalisis()">Iniciar Catalogación</button>
+        <button id="btnEjecutar" onclick="ejecutarAnalisis()">Iniciar Catalogación</button>
     </div>
 
     <div class="main">
         <div class="card">
-            <h2 id="pairDisplay" style="margin:0; color:var(--accent)">SISTEMA MEDINA CARRILLO</h2>
+            <h2 id="pairDisplay" style="margin:0; color:var(--accent)">LISTO PARA ANALIZAR</h2>
             <div class="efficiency-val" id="eff">0%</div>
             <div class="history-grid" id="grid"></div>
         </div>
-        <div class="log-terminal" id="logger">> Protocolo de red Google Cloud listo.</div>
+        <div class="log-terminal" id="logger">> Cargando librerías...</div>
     </div>
 
 <script>
-    // URL DE TU GOOGLE APPS SCRIPT
+    // URL DE TU GOOGLE APPS SCRIPT (Asegúrate de que sea la última generada)
     const PROXY_URL = "https://script.google.com/macros/s/AKfycbxC4Goy3ID-pJ0svhmr7tIDzcmL8LE5SFaYvB2UQaVkumvppHaZ0cq86I8FsR2x3uTO7g/exec";
 
-    function log(m) { 
+    const log = m => { 
         const l = document.getElementById('logger');
         l.innerHTML += `<br>> ${m}`; 
         l.scrollTop = l.scrollHeight; 
-    }
+    };
 
     function toggleParams() {
         const type = document.getElementById('indType').value;
@@ -113,30 +113,34 @@
         document.getElementById('params-stoc').style.display = type === 'STOC' ? 'block' : 'none';
     }
 
-    async function ejecutarAnalisis() {
-        // Verificar si la librería cargó
-        if (typeof technicalindicators === 'undefined') {
-            log("❌ Error: Librería técnica no cargada. Reintentando...");
-            location.reload();
-            return;
+    // FUNCIÓN DE CARGA SEGURA
+    function verificarLibreria() {
+        if (typeof technicalindicators !== 'undefined') {
+            log("✅ Librería Técnica Cargada Correctamente.");
+            document.getElementById('btnEjecutar').disabled = false;
+        } else {
+            log("⏳ Esperando librería...");
+            setTimeout(verificarLibreria, 1000);
         }
+    }
 
+    async function ejecutarAnalisis() {
         const pair = document.getElementById('pair').value;
         const tf = document.getElementById('tf').value;
-        log(`📡 Solicitando datos a Google Cloud para ${pair}...`);
+        log(`🚀 Solicitando datos vía Google Cloud...`);
 
         try {
             const response = await fetch(`${PROXY_URL}?pair=${pair}&tf=${tf}`);
             const data = await response.json();
 
             if (data && Array.isArray(data)) {
-                log(`✅ Datos recibidos. Analizando estrategia...`);
+                log(`✅ Datos recibidos. Analizando...`);
                 procesar(data);
             } else {
-                throw new Error("Datos de Google inválidos");
+                log("❌ Error: Respuesta de Google no es una lista.");
             }
         } catch (e) {
-            log(`🛑 Error de conexión: ${e.message}`);
+            log(`🛑 Error de Conexión: Verifica el acceso del Google Script.`);
         }
     }
 
@@ -145,7 +149,6 @@
             const closes = data.map(d => parseFloat(d[4])).filter(n => !isNaN(n));
             const highs = data.map(d => parseFloat(d[2])).filter(n => !isNaN(n));
             const lows = data.map(d => parseFloat(d[3])).filter(n => !isNaN(n));
-            
             const type = document.getElementById('indType').value;
             const exp = parseInt(document.getElementById('exp').value);
             
@@ -182,7 +185,6 @@
                 }
             }
 
-            // UI Update
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
             resultados.reverse().forEach(r => {
@@ -200,17 +202,19 @@
             
             document.getElementById('eff').innerText = eff + "%";
             document.getElementById('pairDisplay').innerText = pair;
-            log(`🎯 Catalogación exitosa para ${pair}.`);
+            log(`🎯 Análisis exitoso.`);
 
         } catch (err) {
-            log(`❌ Error en cálculo: ${err.message}`);
+            log(`❌ Error de cálculo: ${err.message}`);
         }
     }
 
-    // Inicializar rejilla
+    // Iniciar verificación al cargar
     window.onload = () => {
+        document.getElementById('btnEjecutar').disabled = true;
         const grid = document.getElementById('grid');
         for(let i=0; i<20; i++) grid.innerHTML += '<div class="box"></div>';
+        verificarLibreria();
     };
 </script>
 </body>
